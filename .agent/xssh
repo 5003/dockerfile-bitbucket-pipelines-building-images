@@ -1,0 +1,24 @@
+BUILDER_REPO_NAME=${BUILDER_REPO##*/}
+BUILDER_REPO_NAME=${BUILDER_REPO_NAME%.*}
+
+sshpass -e ssh ${USERNAME}@${DOMAIN} "
+
+set -x
+set -e
+uname --all
+
+IMAGENAME_PREFIX=$IMAGENAME_PREFIX
+  test ! -d $BUILDER_REPO_NAME && git clone $BUILDER_REPO $BUILDER_REPO_NAME
+  pushd $BUILDER_REPO_NAME > /dev/null &&
+    git pull &&
+    . ./init.sh
+  popd > /dev/null
+
+  if [ $BITBUCKET_REPO_SLUG != $BUILDER_REPO_NAME ]
+    then
+    for tag in $BITBUCKET_COMMIT latest
+    do docker build $BUILD_OPTIONS --tag ${IMAGENAME_PREFIX}${IMAGENAME}:\$tag ${BUILDER_REPO%%/*}/${BITBUCKET_REPO_SLUG}.git &&
+       docker push ${IMAGENAME_PREFIX}${IMAGENAME}:\$tag
+    done
+  fi
+"
